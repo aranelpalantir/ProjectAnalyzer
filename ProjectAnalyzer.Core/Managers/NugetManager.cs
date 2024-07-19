@@ -2,6 +2,8 @@
 using NuGet.Common;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
+using NuGet.Versioning;
+using ProjectAnalyzer.Core.Helpers;
 using ProjectAnalyzer.Core.Models;
 
 namespace ProjectAnalyzer.Core.Managers
@@ -9,32 +11,30 @@ namespace ProjectAnalyzer.Core.Managers
     public class NugetManager
     {
         private readonly List<string> _sources;
-        private readonly Dictionary<string, string> _versionCache = new Dictionary<string, string>();
+        private readonly Dictionary<string, NuGetVersion> _versionCache = new Dictionary<string, NuGetVersion>();
 
         public NugetManager(List<string> sources)
         {
             _sources = sources;
         }
-        public async Task<string?> GetLatestNuGetVersion(string packageName)
+        public async Task<NuGetVersion?> GetLatestNuGetVersion(string packageName, bool preRelease)
         {
             if (_versionCache.TryGetValue(packageName, out var cachedVersion))
             {
                 return cachedVersion;
             }
 
-            string? latestVersion = null;
+            NuGetVersion? latestVersion = null;
             foreach (var source in _sources)
             {
                 var repository = Repository.Factory.GetCoreV3(source);
                 var metadataResource = await repository.GetResourceAsync<MetadataResource>();
 
                 var versions = await metadataResource.GetVersions(packageName, new SourceCacheContext(), NullLogger.Instance, CancellationToken.None);
-
                 var sourceLatestVersion = versions
-                    .Where(r => r.IsPrerelease == false)
-                    .MaxBy(v => v)?
-                    .ToNormalizedString();
-                if (!string.IsNullOrEmpty(sourceLatestVersion))
+                    .Where(r => r.IsPrerelease == preRelease)
+                    .MaxBy(v => v);
+                if (sourceLatestVersion != null)
                 {
                     latestVersion = sourceLatestVersion;
                     break;
@@ -63,12 +63,14 @@ namespace ProjectAnalyzer.Core.Managers
                     {
                         var packageName = package.Attribute("id")?.Value;
                         var packageVersion = package.Attribute("version")?.Value;
-                        var latestVersion = await GetLatestNuGetVersion(packageName);
+
+                        var currentVersion = VersionHelpers.TryParseNugetVersion(packageVersion, packageName, _sources);
+                        var latestVersion = await GetLatestNuGetVersion(packageName, currentVersion.IsPrerelease);
 
                         nugetPackages.Add(new NuGetPackage
                         {
                             Name = packageName,
-                            CurrentVersion = packageVersion,
+                            CurrentVersion = currentVersion,
                             LatestVersion = latestVersion
                         });
                     }
@@ -87,12 +89,14 @@ namespace ProjectAnalyzer.Core.Managers
             {
                 var packageName = packageReference.Attribute("Include")?.Value;
                 var packageVersion = packageReference.Attribute("Version")?.Value;
-                var latestVersion = await GetLatestNuGetVersion(packageName);
+
+                var currentVersion = VersionHelpers.TryParseNugetVersion(packageVersion, packageName, _sources);
+                var latestVersion = await GetLatestNuGetVersion(packageName, currentVersion.IsPrerelease);
 
                 packages.Add(new NuGetPackage
                 {
                     Name = packageName,
-                    CurrentVersion = packageVersion,
+                    CurrentVersion = currentVersion,
                     LatestVersion = latestVersion
                 });
             }

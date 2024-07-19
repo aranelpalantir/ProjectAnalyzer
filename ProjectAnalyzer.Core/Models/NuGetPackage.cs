@@ -1,12 +1,12 @@
-﻿using ProjectAnalyzer.Core.Helpers;
+﻿using NuGet.Versioning;
 
 namespace ProjectAnalyzer.Core.Models;
 
 public class NuGetPackage
 {
     public string Name { get; set; }
-    public string CurrentVersion { get; set; }
-    public string LatestVersion { get; set; }
-    public bool IsUpdateAvailable => VersionHelpers.IsVersionUpdateAvailable(CurrentVersion, LatestVersion);
+    public NuGetVersion? CurrentVersion { get; set; }
+    public NuGetVersion? LatestVersion { get; set; }
+    public bool IsUpdateAvailable => LatestVersion > CurrentVersion;
 
 }
