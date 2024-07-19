@@ -29,17 +29,33 @@ namespace ProjectAnalyzer.CLI
 
                     foreach (var projectInfo in projectInfos)
                     {
-                        Console.WriteLine($"Project: {projectInfo.ProjectPath}");
-                        Console.WriteLine($"DotNet Version: {projectInfo.DotNetVersion}");
-                        Console.WriteLine($"Nuget Packages:");
+                        Console.WriteLine($"Project Path: {projectInfo.ProjectPath}");
+                        Console.WriteLine($"Target .NET Version: {projectInfo.DotNetVersion}");
+                        Console.WriteLine($"NuGet Packages:");
+                        var updatesAvailable = projectInfo.Packages.Where(p => p.IsUpdateAvailable).ToList();
+                        var noUpdatesNeeded = projectInfo.Packages.Where(p => !p.IsUpdateAvailable).ToList();
 
-                        foreach (var package in projectInfo.Packages)
+                        if (updatesAvailable.Any())
                         {
-                            Console.ForegroundColor = package.IsUpdateAvailable ? ConsoleColor.Red : ConsoleColor.Green;
-                            Console.WriteLine($"Package: {package.Name}, Current Version: {package.CurrentVersion}, Latest Version: {package.LatestVersion}");
+                            Console.WriteLine("Packages with Updates Available:");
+                            foreach (var package in updatesAvailable)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine($"Package: {package.Name}, Current Version: {package.CurrentVersion}, Latest Version: {package.LatestVersion}");
+                            }
                             Console.ResetColor();
                         }
 
+                        if (noUpdatesNeeded.Any())
+                        {
+                            Console.WriteLine("Packages Up-to-date:");
+                            foreach (var package in noUpdatesNeeded)
+                            {
+                                Console.ForegroundColor = ConsoleColor.Green;
+                                Console.WriteLine($"Package: {package.Name}, Current Version: {package.CurrentVersion}, Latest Version: {package.LatestVersion}");
+                            }
+                            Console.ResetColor();
+                        }
                         Console.WriteLine("------------------------------");
                     }
                 }
