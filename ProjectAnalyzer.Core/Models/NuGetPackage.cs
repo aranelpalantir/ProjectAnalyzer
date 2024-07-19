@@ -8,5 +8,5 @@ public class NuGetPackage
     public NuGetVersion? CurrentVersion { get; set; }
     public NuGetVersion? LatestVersion { get; set; }
     public bool IsUpdateAvailable => LatestVersion > CurrentVersion;
-
+    public List<Vulnerability> Vulnerabilities { get; set; } = new();
 }

@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-
-namespace ProjectAnalyzer.CLI
+﻿namespace ProjectAnalyzer.CLI
 {
     public class AppConfig
     {
@@ -8,13 +6,6 @@ namespace ProjectAnalyzer.CLI
         public string SvnUsername { get; set; }
         public string SvnPassword { get; set; }
         public List<string> SVNRepositories { get; set; }
-      
-
-        public static AppConfig Load(string configFile)
-        {
-            string json = File.ReadAllText(configFile);
-            return JsonConvert.DeserializeObject<AppConfig>(json);
-        }
+        public string GitHubToken { get; set; }
     }
-    
 }

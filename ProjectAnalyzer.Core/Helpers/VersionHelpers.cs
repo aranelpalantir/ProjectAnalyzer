@@ -54,5 +54,36 @@ namespace ProjectAnalyzer.Core.Helpers
             }
             return NuGetVersion.TryParse(NormalizeVersion(version), out var normalizedCurrentVersion) ? normalizedCurrentVersion : null;
         }
+        public static string ConvertToNuGetVersionRange(string versionRangeString)
+        {
+            if (string.IsNullOrWhiteSpace(versionRangeString))
+                return "";
+
+            var parts = versionRangeString.Split(new[] { ",", " " }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length == 4)
+            {
+                var minVersion = parts[1];
+                var maxVersion = parts[3];
+                var includeMinVersion = false;
+                var includeMaxVersion = false;
+
+                if (parts[0] == ">=")
+                    includeMinVersion = true;
+                if (parts[2] == "<=")
+                    includeMaxVersion = true;
+
+                return $"{(includeMinVersion ? "[" : "(")}{minVersion}, {maxVersion}{(includeMaxVersion ? "]" : ")")}";
+            }
+            else if (parts.Length == 2)
+            {
+                var maxVersion = parts[1];
+                var includeMaxVersion = parts[0] == "<=";
+
+                return $"[0.0.0, {maxVersion}{(includeMaxVersion ? "]" : ")")}";
+            }
+
+            return versionRangeString;
+        }
     }
 }

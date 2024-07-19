@@ -11,11 +11,15 @@ namespace ProjectAnalyzer.Core.Managers
     public class NugetManager
     {
         private readonly List<string> _sources;
-        private readonly Dictionary<string, NuGetVersion> _versionCache = new Dictionary<string, NuGetVersion>();
+        private readonly Dictionary<string, NuGetVersion> _versionCache = new();
+        private readonly VulnerabilityHelpers _vulnerabilityHelpers;
 
-        public NugetManager(List<string> sources)
+        public NugetManager(
+            List<string> sources,
+            string gitHubToken)
         {
             _sources = sources;
+            _vulnerabilityHelpers = new VulnerabilityHelpers(gitHubToken);
         }
         public async Task<NuGetVersion?> GetLatestNuGetVersion(string packageName, bool preRelease)
         {
@@ -63,16 +67,7 @@ namespace ProjectAnalyzer.Core.Managers
                     {
                         var packageName = package.Attribute("id")?.Value;
                         var packageVersion = package.Attribute("version")?.Value;
-
-                        var currentVersion = VersionHelpers.TryParseNugetVersion(packageVersion, packageName, _sources);
-                        var latestVersion = await GetLatestNuGetVersion(packageName, currentVersion.IsPrerelease);
-
-                        nugetPackages.Add(new NuGetPackage
-                        {
-                            Name = packageName,
-                            CurrentVersion = currentVersion,
-                            LatestVersion = latestVersion
-                        });
+                        await AddNugetPackage(nugetPackages, packageName, packageVersion);
                     }
                 }
             }
@@ -81,7 +76,7 @@ namespace ProjectAnalyzer.Core.Managers
         }
         public async Task<List<NuGetPackage>> ReadPackagesFromProjectFile(string projectPath)
         {
-            var packages = new List<NuGetPackage>();
+            var nugetPackages = new List<NuGetPackage>();
             var projectFile = XDocument.Load(projectPath);
 
             var packageReferences = projectFile.Descendants("PackageReference");
@@ -90,18 +85,24 @@ namespace ProjectAnalyzer.Core.Managers
                 var packageName = packageReference.Attribute("Include")?.Value;
                 var packageVersion = packageReference.Attribute("Version")?.Value;
 
-                var currentVersion = VersionHelpers.TryParseNugetVersion(packageVersion, packageName, _sources);
-                var latestVersion = await GetLatestNuGetVersion(packageName, currentVersion.IsPrerelease);
-
-                packages.Add(new NuGetPackage
-                {
-                    Name = packageName,
-                    CurrentVersion = currentVersion,
-                    LatestVersion = latestVersion
-                });
+                await AddNugetPackage(nugetPackages, packageName, packageVersion);
             }
 
-            return packages;
+            return nugetPackages;
+        }
+        private async Task AddNugetPackage(List<NuGetPackage> nugetPackages, string packageName, string packageVersion)
+        {
+            var currentVersion = VersionHelpers.TryParseNugetVersion(packageVersion, packageName, _sources);
+            var latestVersion = await GetLatestNuGetVersion(packageName, currentVersion.IsPrerelease);
+            var vulnerabilities = await _vulnerabilityHelpers.GetVulnerabilitiesAsync(packageName, currentVersion.ToNormalizedString());
+
+            nugetPackages.Add(new NuGetPackage
+            {
+                Name = packageName,
+                CurrentVersion = currentVersion,
+                LatestVersion = latestVersion,
+                Vulnerabilities = vulnerabilities
+            });
         }
     }
 }
