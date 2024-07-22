@@ -71,7 +71,7 @@ namespace ProjectAnalyzer.CLI
             Console.WriteLine(" Vulnerabilities:");
             foreach (var vulnerability in vulnerabilities)
             {
-                Console.WriteLine($" - {vulnerability.Severity}: {vulnerability.Summary}");
+                Console.WriteLine($" - {vulnerability.Severity}: {vulnerability.VersionRange}, {vulnerability.Summary}");
             }
             Console.ResetColor();
         }
